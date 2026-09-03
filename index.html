@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Directory Manager - Freebuff</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0f1117;
+            color: #e1e4e8;
+            line-height: 1.6;
+        }
+        .hero {
+            background: linear-gradient(135deg, #1a1d29 0%, #0d1117 50%, #161b22 100%);
+            border-bottom: 1px solid #21262d;
+            padding: 48px 24px;
+            text-align: center;
+        }
+        .hero h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #58a6ff, #bc8cff, #f778ba);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .hero .subtitle {
+            color: #8b949e;
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto 24px;
+        }
+        .badge-row {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid #30363d;
+            background: #161b22;
+        }
+        .badge.python { color: #3572A5; border-color: #3572A5; }
+        .badge.pyqt { color: #41cd52; border-color: #41cd52; }
+        .badge.ldap { color: #f778ba; border-color: #f778ba; }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #21262d;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+        .feature-card {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 12px;
+            padding: 20px;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .feature-card:hover {
+            border-color: #58a6ff;
+            transform: translateY(-2px);
+        }
+        .feature-card .icon {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+        .feature-card h3 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+            color: #f0f6fc;
+        }
+        .feature-card p {
+            color: #8b949e;
+            font-size: 0.875rem;
+        }
+        .feature-card ul {
+            color: #8b949e;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            padding-left: 16px;
+        }
+        .feature-card ul li { margin-bottom: 3px; }
+        .feature-card ul li::marker { color: #58a6ff; }
+        .code-block {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 16px 20px;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin-bottom: 24px;
+        }
+        .code-block .comment { color: #8b949e; }
+        .code-block .cmd { color: #7ee787; }
+        .code-block .flag { color: #d2a8ff; }
+        .code-block .string { color: #a5d6ff; }
+        .tree {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 20px 24px;
+            font-family: 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 0.82rem;
+            line-height: 1.8;
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+        .tree .dir { color: #79c0ff; font-weight: 600; }
+        .tree .file { color: #c9d1d9; }
+        .tree .desc { color: #8b949e; }
+        .mockup {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .mockup-titlebar {
+            background: #161b22;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #21262d;
+        }
+        .mockup-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .mockup-dot.red { background: #ff5f57; }
+        .mockup-dot.yellow { background: #febc2e; }
+        .mockup-dot.green { background: #28c840; }
+        .mockup-titlebar span {
+            color: #8b949e;
+            font-size: 0.8rem;
+            margin-left: 8px;
+        }
+        .mockup-body {
+            display: flex;
+            min-height: 420px;
+        }
+        .mockup-sidebar {
+            width: 200px;
+            background: #1a1d21;
+            border-right: 1px solid #21262d;
+            padding: 16px 0;
+            flex-shrink: 0;
+        }
+        .mockup-sidebar .logo {
+            padding: 0 16px 16px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            color: #f0f6fc;
+            border-bottom: 1px solid #30363d;
+            margin-bottom: 8px;
+        }
+        .mockup-sidebar .nav-item {
+            padding: 8px 16px;
+            font-size: 0.82rem;
+            color: #8b949e;
+            cursor: default;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .mockup-sidebar .nav-item.active {
+            background: #1a73e8;
+            color: #fff;
+            border-radius: 0;
+            font-weight: 600;
+        }
+        .mockup-sidebar .nav-item:hover:not(.active) {
+            background: #2d3139;
+            color: #c9d1d9;
+        }
+        .mockup-sidebar .conn-status {
+            margin-top: auto;
+            padding: 12px 16px;
+            font-size: 0.75rem;
+            border-top: 1px solid #30363d;
+            position: absolute;
+            bottom: 0;
+        }
+        .mockup-content {
+            flex: 1;
+            padding: 20px;
+        }
+        .mockup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #21262d;
+        }
+        .mockup-header h2 { font-size: 1.2rem; }
+        .mockup-header .actions { display: flex; gap: 8px; }
+        .mockup-btn {
+            padding: 6px 14px;
+            border-radius: 6px;
+            border: none;
+            font-size: 0.8rem;
+            cursor: default;
+        }
+        .mockup-btn.primary { background: #1a73e8; color: #fff; }
+        .mockup-btn.secondary { background: transparent; border: 1px solid #30363d; color: #8b949e; }
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .stat-card .label {
+            color: #8b949e;
+            font-size: 0.75rem;
+            margin-bottom: 4px;
+        }
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .stat-card .value.blue { color: #58a6ff; }
+        .stat-card .value.green { color: #3fb950; }
+        .stat-card .value.yellow { color: #d29922; }
+        .stat-card .value.red { color: #f85149; }
+        .mockup-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.78rem;
+        }
+        .mockup-table th {
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 2px solid #21262d;
+            color: #8b949e;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+        }
+        .mockup-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #21262d;
+            color: #c9d1d9;
+        }
+        .mockup-table tr:hover td { background: #161b22; }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+        .status-badge.active { background: #0d4429; color: #3fb950; }
+        .status-badge.locked { background: #490202; color: #f85149; }
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .quick-action {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: #c9d1d9;
+            cursor: default;
+        }
+        .quick-action:hover { border-color: #58a6ff; }
+        .quick-action .qa-icon { font-size: 1.2rem; }
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #21262d;
+        }
+        .tab {
+            padding: 8px 16px;
+            font-size: 0.82rem;
+            color: #8b949e;
+            cursor: default;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            color: #f0f6fc;
+            border-bottom-color: #58a6ff;
+            font-weight: 600;
+        }
+        .install-section {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .install-section h3 {
+            margin-bottom: 12px;
+            color: #f0f6fc;
+        }
+        .step {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            align-items: flex-start;
+        }
+        .step-num {
+            background: #1a73e8;
+            color: #fff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .step-text { color: #c9d1d9; font-size: 0.9rem; }
+        .step-text code {
+            background: #0d1117;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Cascadia Code', monospace;
+            font-size: 0.82rem;
+            color: #7ee787;
+        }
+        .preview-note {
+            background: linear-gradient(135deg, #1c1e2a, #161b22);
+            border: 1px solid #30363d;
+            border-left: 4px solid #58a6ff;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            font-size: 0.88rem;
+            color: #c9d1d9;
+        }
+        .preview-note strong { color: #58a6ff; }
+        footer {
+            border-top: 1px solid #21262d;
+            padding: 24px;
+            text-align: center;
+            color: #484f58;
+            font-size: 0.8rem;
+        }
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 1.6rem; }
+            .stat-cards { grid-template-columns: repeat(2, 1fr); }
+            .mockup-sidebar { width: 160px; }
+            .features-grid { grid-template-columns: 1fr; }
+            .quick-actions { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Hero Section -->
+<div class="hero">
+    <h1>&#128274; Active Directory Manager</h1>
+    <p class="subtitle">
+        A comprehensive desktop tool for managing Active Directory &mdash;
+        without opening AD Users and Computers.
+    </p>
+    <div class="badge-row">
+        <span class="badge python">Python 3.8+</span>
+        <span class="badge pyqt">PyQt6 GUI</span>
+        <span class="badge ldap">LDAP3 Connection</span>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Preview Note -->
+    <div class="preview-note">
+        <strong>&#9432; Note:</strong> This is a native <strong>Python desktop application</strong> (PyQt6 + LDAP3)
+        that runs on Windows, not a web app. The page below shows a live preview of the UI design.
+        To run the actual application, see the installation steps below.
+    </div>
+
+    <!-- UI Mockup -->
+    <h2 class="section-title">&#128736; Application Preview</h2>
+    <div class="mockup">
+        <div class="mockup-titlebar">
+            <div class="mockup-dot red"></div>
+            <div class="mockup-dot yellow"></div>
+            <div class="mockup-dot green"></div>
+            <span>Active Directory Manager - Freebuff</span>
+        </div>
+        <div class="mockup-body">
+            <!-- Sidebar -->
+            <div class="mockup-sidebar">
+                <div class="logo">&#128274; AD Manager</div>
+                <div class="nav-item active">&#128202; Dashboard</div>
+                <div class="nav-item">&#128101; Users</div>
+                <div class="nav-item">&#127991; Groups</div>
+                <div class="nav-item">&#128421; Computers</div>
+                <div class="nav-item">&#128203; Group Policy</div>
+                <div class="nav-item">&#128193; Organizational Units</div>
+            </div>
+
+            <!-- Content -->
+            <div class="mockup-content">
+                <div class="mockup-header">
+                    <h2>&#128202; Dashboard Overview</h2>
+                    <div class="actions">
+                        <div class="mockup-btn secondary">&#128260; Refresh</div>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stat-cards">
+                    <div class="stat-card">
+                        <div class="label">&#128100; Total Users</div>
+                        <div class="value blue">1,247</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">&#9989; Enabled</div>
+                        <div class="value green">1,189</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">&#128274; Locked Out</div>
+                        <div class="value yellow">23</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">&#128421; Computers</div>
+                        <div class="value blue">456</div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="tabs">
+                    <div class="tab active">&#128274; Locked Accounts</div>
+                    <div class="tab">&#128683; Disabled</div>
+                    <div class="tab">&#128421; Disabled PCs</div>
+                    <div class="tab">&#128196; Password Expired</div>
+                </div>
+
+                <!-- Table -->
+                <table class="mockup-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Display Name</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                            <th>Last Modified</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>jthompson</td>
+                            <td>James Thompson</td>
+                            <td>Engineering</td>
+                            <td><span class="status-badge locked">LOCKED</span></td>
+                            <td>2026-08-29 14:32</td>
+                        </tr>
+                        <tr>
+                            <td>mmartinez</td>
+                            <td>Maria Martinez</td>
+                            <td>Finance</td>
+                            <td><span class="status-badge locked">LOCKED</span></td>
+                            <td>2026-08-29 11:05</td>
+                        </tr>
+                        <tr>
+                            <td>rkim</td>
+                            <td>Robert Kim</td>
+                            <td>HR</td>
+                            <td><span class="status-badge locked">LOCKED</span></td>
+                            <td>2026-08-28 09:18</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <div class="quick-action">
+                        <span class="qa-icon">&#128100;</span>
+                        Create New User
+                    </div>
+                    <div class="quick-action">
+                        <span class="qa-icon">&#128273;</span>
+                        Reset Password
+                    </div>
+                    <div class="quick-action">
+                        <span class="qa-icon">&#128101;</span>
+                        Create Group
+                    </div>
+                    <div class="quick-action">
+                        <span class="qa-icon">&#128279;</span>
+                        Link GPO to OU
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features -->
+    <h2 class="section-title">&#11088; Features</h2>
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="icon">&#128100;</div>
+            <h3>User Management</h3>
+            <p>Complete user lifecycle management from a single interface.</p>
+            <ul>
+                <li>Search by username, name, email, department</li>
+                <li>Check locked account status</li>
+                <li>Reset passwords with complexity validation</li>
+                <li>Unlock locked accounts</li>
+                <li>Create new users with all attributes</li>
+                <li>Clone users with group memberships</li>
+                <li>Enable / Disable accounts</li>
+                <li>Move users between OUs</li>
+            </ul>
+        </div>
+        <div class="feature-card">
+            <div class="icon">&#127991;</div>
+            <h3>Group Management</h3>
+            <p>Manage security and distribution groups effortlessly.</p>
+            <ul>
+                <li>Create Global, DomainLocal, or Universal groups</li>
+                <li>Security or Distribution group types</li>
+                <li>Add / Remove members</li>
+                <li>View group membership lists</li>
+                <li>Search across all groups</li>
+            </ul>
+        </div>
+        <div class="feature-card">
+            <div class="icon">&#128421;</div>
+            <h3>Computer / Workstation</h3>
+            <p>Manage every machine on the domain from one place.</p>
+            <ul>
+                <li>List all computers and workstations</li>
+                <li>Enable / Disable computer accounts</li>
+                <li>Reset computer account (rejoin domain)</li>
+                <li>Move computers between OUs</li>
+                <li>View OS, location, and managed-by info</li>
+            </ul>
+        </div>
+        <div class="feature-card">
+            <div class="icon">&#128203;</div>
+            <h3>Group Policy (GPO)</h3>
+            <p>View and link Group Policy Objects without GPMC.</p>
+            <ul>
+                <li>List all GPOs with version info</li>
+                <li>Link GPOs to any OU</li>
+                <li>View GPO file paths and metadata</li>
+                <li>Search GPOs by display name</li>
+            </ul>
+        </div>
+        <div class="feature-card">
+            <div class="icon">&#128193;</div>
+            <h3>Organizational Units</h3>
+            <p>Manage the OU structure of your domain.</p>
+            <ul>
+                <li>List all OUs in the domain</li>
+                <li>Create new OUs</li>
+                <li>View OU details and DN</li>
+                <li>Copy DN to clipboard</li>
+            </ul>
+        </div>
+        <div class="feature-card">
+            <div class="icon">&#128202;</div>
+            <h3>Dashboard &amp; Reports</h3>
+            <p>At-a-glance overview with one-click CSV export.</p>
+            <ul>
+                <li>Real-time statistics cards</li>
+                <li>Locked accounts report</li>
+                <li>Disabled accounts / computers reports</li>
+                <li>Never-logged-on users</li>
+                <li>Password expired users</li>
+                <li>Export any report to CSV</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Installation -->
+    <h2 class="section-title">&#128640; Quick Start</h2>
+    <div class="install-section">
+        <h3>Installation &amp; Launch</h3>
+
+        <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text">Install Python dependencies</div>
+        </div>
+        <div class="code-block">
+            <span class="cmd">pip</span> <span class="flag">install</span> <span class="string">-r requirements.txt</span>
+        </div>
+
+        <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text">Launch the application</div>
+        </div>
+        <div class="code-block">
+            <span class="cmd">python</span> <span class="string">main.py</span>
+        </div>
+
+        <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text">Enter your AD domain credentials in the connection dialog and click <strong>Connect</strong></div>
+        </div>
+    </div>
+
+    <!-- Project Structure -->
+    <h2 class="section-title">&#128193; Project Structure</h2>
+    <div class="tree">
+  <span class="file">main.py</span>                          <span class="desc"># Application entry point</span>
+  <span class="file">requirements.txt</span>                 <span class="desc"># Python dependencies</span>
+  <span class="file">index.html</span>                       <span class="desc"># This documentation page</span>
+  <span class="dir">core/</span>
+    <span class="file">ad_connection.py</span>               <span class="desc"># LDAP connection, user/group/computer/GPO operations</span>
+  <span class="dir">ui/</span>
+    <span class="file">main_window.py</span>                 <span class="desc"># Main window with sidebar navigation</span>
+    <span class="file">login_dialog.py</span>                <span class="desc"># AD connection dialog with SSL support</span>
+    <span class="file">user_management.py</span>             <span class="desc"># User search, CRUD, password reset, clone</span>
+    <span class="file">group_management.py</span>            <span class="desc"># Group CRUD and membership management</span>
+    <span class="file">computer_management.py</span>         <span class="desc"># Computer/workstation management</span>
+    <span class="file">policy_management.py</span>           <span class="desc"># GPO listing and linking</span>
+    <span class="file">ou_management.py</span>               <span class="desc"># OU listing and creation</span>
+    <span class="file">reports_panel.py</span>               <span class="desc"># Dashboard, reports, CSV export</span>
+    <span class="file">styles.py</span>                      <span class="desc"># Application theming and colors</span>
+    <span class="file">widgets.py</span>                     <span class="desc"># Reusable custom widgets</span>
+  <span class="dir">utils/</span>
+    <span class="file">helpers.py</span>                     <span class="desc"># Password validation, formatting, generation</span>
+    </div>
+
+    <!-- Permissions -->
+    <h2 class="section-title">&#128272; Required AD Permissions</h2>
+    <div class="install-section">
+        <p style="color: #8b949e; margin-bottom: 12px;">
+            The domain account used to connect must have the following permissions:
+        </p>
+        <ul style="padding-left: 20px; color: #c9d1d9; line-height: 2;">
+            <li><strong>Read</strong> &mdash; Access to AD objects (users, groups, computers, GPOs, OUs)</li>
+            <li><strong>Reset Password</strong> &mdash; For password change operations</li>
+            <li><strong>Modify</strong> &mdash; For updating user/computer attributes</li>
+            <li><strong>Create/Delete</strong> &mdash; For creating new objects (users, groups, OUs)</li>
+            <li><strong>Group Management</strong> &mdash; For adding/removing group members</li>
+        </ul>
+    </div>
+
+</div>
+
+<footer>
+    Built with &#10084;&#65039; by Freebuff &bull; Active Directory Manager v1.0
+</footer>
+
+</body>
+</html>
