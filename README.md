@@ -253,7 +253,3 @@ This project is open source and available for use.
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit pull requests or issues.
-
----
-
-**Built with ❤️ by Freebuff**
