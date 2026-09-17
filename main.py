@@ -26,15 +26,34 @@ import sys
 import os
 import logging
 
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('ad_manager.log'),
-        logging.StreamHandler(sys.stdout),
-    ]
-)
+def _setup_logging():
+    """Configure logging for both script and frozen (PyInstaller) runs."""
+    if getattr(sys, 'frozen', False):
+        # Packaged exe: the working directory may not be writable
+        # (e.g. C:\Windows\System32), so log to %LOCALAPPDATA%\AD-Manager.
+        base_dir = os.path.join(
+            os.environ.get('LOCALAPPDATA', os.path.expanduser('~')),
+            'AD-Manager'
+        )
+        os.makedirs(base_dir, exist_ok=True)
+        log_path = os.path.join(base_dir, 'ad_manager.log')
+    else:
+        log_path = 'ad_manager.log'
+
+    handlers = [logging.FileHandler(log_path, encoding='utf-8')]
+
+    # stdout/stderr are None in windowed (no-console) builds.
+    if sys.stdout is not None:
+        handlers.append(logging.StreamHandler(sys.stdout))
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=handlers,
+    )
+
+
+_setup_logging()
 
 logger = logging.getLogger(__name__)
 

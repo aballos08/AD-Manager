@@ -76,6 +76,27 @@ pip install -r requirements.txt
 python main.py
 ```
 
+## 📦 Standalone .exe (no Python needed)
+
+IT staff can run AD Manager without installing Python via a packaged Windows build.
+
+### Use the prebuilt app
+1. Copy the **whole `dist/AD-Manager/` folder** to the target machine (all support files are required, not just the .exe).
+2. Run `AD-Manager.exe`.
+3. Logs are written to `%LOCALAPPDATA%\AD-Manager\ad_manager.log`.
+
+### Build it yourself
+```bash
+pip install pyinstaller
+build-exe.bat        # or: pyinstaller AD-Manager.spec --noconfirm --clean
+```
+The build output lands in `dist/AD-Manager/`.
+
+> **Notes**
+> - The build machine should run the same Windows bitness/OS family you target (build on Windows for a Windows exe).
+> - SmartScreen may warn on unsigned exes from unknown publishers — click *More info → Run anyway*, or sign the binary with your organization's code-signing certificate.
+> - The packaged app still needs network access to your domain controllers; it ships with no domain data.
+
 ## 📖 Usage Guide
 
 ### 1. Connecting to Active Directory
