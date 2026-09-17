@@ -3,6 +3,8 @@ Active Directory Connection Manager
 Handles LDAP connection to Active Directory domain controllers.
 """
 
+import functools
+import inspect
 import ssl
 import logging
 from typing import Optional, Dict, Any, List, Tuple
@@ -17,7 +19,132 @@ from ldap3.core.exceptions import (
     LDAPException,
 )
 
+import core.audit as _audit
+from core.audit import AuditLog, ACTION_CREATE, ACTION_DELETE, ACTION_MODIFY
+
 logger = logging.getLogger(__name__)
+
+
+# ─── Audit trail plumbing ─────────────────────────────────────────────
+# Declarative map of every AD mutation to its audit metadata. Each entry
+# maps a method name to a (action, object_type) pair plus an arg-extractor
+# that builds the "what" from the call arguments.
+
+AUDIT_MAP = {
+    "unlock_user": (
+        ACTION_MODIFY, "user",
+        lambda a: f"account unlocked",
+    ),
+    "reset_password": (
+        ACTION_MODIFY, "user",
+        lambda a: (
+            f"password reset (must change at next logon: {a.get('must_change', True)})"
+        ),
+    ),
+    "enable_user": (ACTION_MODIFY, "user", lambda a: "account enabled"),
+    "disable_user": (ACTION_MODIFY, "user", lambda a: "account disabled"),
+    "create_user": (
+        ACTION_CREATE, "user",
+        lambda a: f"in {a.get('ou_dn', '?')} (must change pwd: {a.get('must_change_password', True)})",
+    ),
+    "clone_user": (
+        ACTION_CREATE, "user",
+        lambda a: (
+            f"cloned from {a.get('source_sam', '?')}, groups: "
+            f"{a.get('copy_group_membership', True)}"
+        ),
+    ),
+    "move_user": (
+        ACTION_MODIFY, "user", lambda a: f"moved to {a.get('target_ou_dn', '?')}"
+    ),
+    "set_user_attribute": (
+        ACTION_MODIFY, "user", lambda a: f"attribute '{a.get('attribute', '?')}' set"
+    ),
+    "delete_user": (ACTION_DELETE, "user", lambda a: "user deleted"),
+    "create_group": (
+        ACTION_CREATE, "group",
+        lambda a: f"{a.get('scope', 'Global')}/{a.get('group_type', 'Security')} in {a.get('ou_dn', '?')}"
+    ),
+    "add_user_to_group": (
+        ACTION_MODIFY, "group", lambda a: f"member '{a.get('user_sam', '?')}' added"
+    ),
+    "remove_user_from_group": (
+        ACTION_MODIFY, "group", lambda a: f"member '{a.get('user_sam', '?')}' removed"
+    ),
+    "delete_group": (ACTION_DELETE, "group", lambda a: "group deleted"),
+    "enable_computer": (ACTION_MODIFY, "computer", lambda a: "account enabled"),
+    "disable_computer": (ACTION_MODIFY, "computer", lambda a: "account disabled"),
+    "reset_computer_password": (
+        ACTION_MODIFY, "computer", lambda a: "computer account password reset"
+    ),
+    "move_computer": (
+        ACTION_MODIFY, "computer", lambda a: f"moved to {a.get('target_ou_dn', '?')}"
+    ),
+    "delete_computer": (ACTION_DELETE, "computer", lambda a: "computer deleted"),
+    "link_gpo_to_ou": (
+        ACTION_MODIFY, "gpo",
+        lambda a: f"linked to OU {a.get('ou_dn', '?')}"
+    ),
+    "create_ou": (
+        ACTION_CREATE, "ou",
+        lambda a: f"OU '{a.get('name', '?')}' under {a.get('parent_dn', '?')}"
+    ),
+}
+
+
+def _audit_wrap(cls):
+    """Class decorator: wrap each audited method with audit logging.
+
+    The wrapper records success AND failure outcomes, never raises, and    returns whatever the wrapped method returned.
+        """
+
+    for method_name, (action, obj_type, describe) in AUDIT_MAP.items():
+        original = getattr(cls, method_name, None)
+        if original is None:
+            continue  # optional method not present
+
+        @functools.wraps(original)
+        def wrapper(self, *args, __orig=original, __action=action,
+                   __obj_type=obj_type, __describe=describe, **kwargs):
+            result = None
+            try:
+                result = __orig(self, *args, **kwargs)
+                success = bool(result[0]) if isinstance(result, tuple) else True
+                return result
+            except Exception:
+                success = False
+                raise
+            finally:
+                try:
+                    # Merge positional and keyword args by parameter name.
+                    sig = inspect.signature(__orig)
+                    bound = sig.bind(self, *args, **kwargs)
+                    bound.apply_defaults()
+                    params = {
+                        k: v for k, v in bound.arguments.items() if k != "self"
+                    }
+                    obj_name = params.get("sam_account_name") or params.get(
+                        "name"
+                    ) or params.get("user_sam") or params.get(
+                        "group_sam"
+                    ) or params.get("computer_name") or params.get(
+                        "gpo_dn"
+                    ) or "?"
+                    # create_group/clone_user take `name`/`new_sam`.
+                    obj_name = params.get("name") or params.get("new_sam") or obj_name
+                    if "new_sam" in params:
+                        obj_name = params["new_sam"]
+                    detail = __describe(params)
+                    self.audit.log(
+                        __action, __obj_type, str(obj_name), detail,
+                        "success" if success else "failure",
+                    )
+                except Exception as e:
+                    logger.error(f"Audit hook failed: {e}")
+
+        setattr(cls, method_name, wrapper)
+    return cls
+
 
 
 @dataclass
@@ -139,6 +266,7 @@ class ADOUInfo:
     distinguished_name: str = ""
 
 
+@_audit_wrap
 class ADConnection:
     """Manages connection and operations with Active Directory."""
 
@@ -181,6 +309,8 @@ class ADConnection:
         self.server: Optional[Server] = None
         self.config: Optional[ADConfig] = None
         self._connected = False
+        # Tamper-evident audit trail for every AD mutation.
+        self.audit = AuditLog()
 
     @property
     def is_connected(self) -> bool:
@@ -239,6 +369,8 @@ class ADConnection:
                     config.base_dn = naming_contexts[0]
 
             self._connected = True
+            # Record who is operating for the audit trail.
+            _audit.current_ad_user = config.username or None
             logger.info(f"Connected to AD server: {server_uri}")
 
             return True, f"Successfully connected to {server_uri}"
@@ -1118,6 +1250,34 @@ class ADConnection:
 
         except Exception as e:
             return False, f"Error linking GPO: {str(e)}"
+
+    def create_ou(
+        self, name: str, parent_dn: str = "", description: str = ""
+    ) -> Tuple[bool, str]:
+        """Create a new organizational unit under parent_dn (domain root if empty)."""
+        if not self.is_connected:
+            return False, "Not connected to Active Directory."
+
+        if not parent_dn:
+            parent_dn = self.config.base_dn if self.config else ""
+        if not parent_dn:
+            return False, "No parent DN available to create the OU under."
+
+        ou_dn = f"OU={name},{parent_dn}"
+        try:
+            self.connection.add(
+                ou_dn,
+                ['organizationalUnit'],
+                {
+                    'name': name,
+                    'description': description or 'Created by AD Manager',
+                },
+            )
+            if self.connection.result['result'] == 0:
+                return True, f"OU '{name}' created successfully under {parent_dn}"
+            return False, f"Failed: {self.connection.result['message']}"
+        except Exception as e:
+            return False, f"Error creating OU: {str(e)}"
 
     # ─── Reports ──────────────────────────────────────────────────────
 

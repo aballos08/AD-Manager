@@ -278,22 +278,12 @@ class OUManagementPanel(QWidget):
             )
 
             if reply:
-                ou_dn = f"OU={name},{base_dn}"
-                try:
-                    self.ad.connection.add(
-                        ou_dn,
-                        ['organizationalUnit'],
-                        {'name': name, 'description': f'Created by AD Manager'}
-                    )
-
-                    if self.ad.connection.result['result'] == 0:
-                        ResultMessageBox.success(self, "OU Created", f"OU '{name}' created successfully.")
-                        self._do_refresh()
-                    else:
-                        msg = self.ad.connection.result.get('message', 'Unknown error')
-                        ResultMessageBox.error(self, "Error", f"Failed to create OU: {msg}")
-                except Exception as e:
-                    ResultMessageBox.error(self, "Error", f"Failed to create OU: {str(e)}")
+                success, msg = self.ad.create_ou(name, base_dn)
+                if success:
+                    ResultMessageBox.success(self, "OU Created", msg)
+                    self._do_refresh()
+                else:
+                    ResultMessageBox.error(self, "Error", msg)
 
     def _copy_to_clipboard(self, field: str, ou: ADOUInfo = None):
         target = ou or self._selected_ou

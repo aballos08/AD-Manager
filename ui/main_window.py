@@ -22,6 +22,7 @@ from ui.computer_management import ComputerManagementPanel
 from ui.policy_management import PolicyManagementPanel
 from ui.ou_management import OUManagementPanel
 from ui.reports_panel import ReportsPanel
+from ui.audit_panel import AuditPanel
 
 
 class MainWindow(QMainWindow):
@@ -98,6 +99,7 @@ class MainWindow(QMainWindow):
             'computers': ComputerManagementPanel,
             'policies': PolicyManagementPanel,
             'ous': OUManagementPanel,
+            'audit': AuditPanel,
         }
 
     def _create_sidebar(self) -> QWidget:
@@ -139,6 +141,7 @@ class MainWindow(QMainWindow):
             ("🖥️", "Computers", "computers"),
             ("📋", "Group Policy", "policies"),
             ("📁", "Organizational Units", "ous"),
+            ("📜", "Audit Trail", "audit"),
         ]
 
         self.nav_group = QButtonGroup(self)
@@ -227,6 +230,7 @@ class MainWindow(QMainWindow):
             'computers': ('Computer Management', 'Manage workstations and computer accounts'),
             'policies': ('Group Policy Management', 'View and link Group Policy Objects'),
             'ous': ('Organizational Units', 'Manage OU structure'),
+            'audit': ('Audit Trail', 'Who changed what, when — every AD change is recorded'),
         }
 
         title, subtitle = titles.get(key, ('', ''))
